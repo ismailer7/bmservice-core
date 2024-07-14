@@ -25,7 +25,7 @@ public class IspController {
 
     @PostMapping("/add")
     public void add() {
-        ispService.add(Isp.builder().statusId(1).name("yahoo").createdBy(1).lastUpdatedBy(1).createdAt(new Date()).lastUpdatedAt(new Date()).authorizedUsers(null).build());
+        ispService.add(Isp.builder().statusId(1).name("btinternet").createdBy(1).lastUpdatedBy(1).createdAt(new Date()).lastUpdatedAt(new Date()).authorizedUsers(null).build());
     }
 
 }
