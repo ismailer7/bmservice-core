@@ -1,4 +1,4 @@
-package com.bmservice.core.models;
+package com.bmservice.core.models.admin;
 
 import lombok.Builder;
 import lombok.Data;
