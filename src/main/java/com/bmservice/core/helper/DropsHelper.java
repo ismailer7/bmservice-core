@@ -195,7 +195,7 @@ public class DropsHelper {
                 }
             }
             catch (Exception e) {
-                log.error(e.getMessage());
+                throw new BmServiceCoreException(e.getMessage());
             }
         }
         return drop;
