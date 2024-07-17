@@ -80,7 +80,7 @@ public class DropComponent {
     private String[] autoReplyEmails;
     private volatile String pickupsFolder;
     private volatile int emailsCounter;
-    //private volatile RotatorComponent vmtasRotator;
+    private volatile RotatorComponent vmtasRotator;
 
     /*public DropComponent() {
         this.id = 0;
@@ -89,5 +89,12 @@ public class DropComponent {
         this.emailsCounter = 0;
     }*/
 
+    public synchronized int updateCounter() {
+        return this.emailsCounter++;
+    }
+
+    public Vmta getCurrentVmta() {
+        return (Vmta)this.vmtasRotator.getCurrentThenRotate();
+    }
 
 }

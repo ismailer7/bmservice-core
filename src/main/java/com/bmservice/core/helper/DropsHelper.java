@@ -1,17 +1,28 @@
 package com.bmservice.core.helper;
 
+import com.bmservice.core.BmServiceCoreConstants;
 import com.bmservice.core.component.DropComponent;
 import com.bmservice.core.exception.BmServiceCoreException;
 import com.bmservice.core.mapper.system.ServerMapper;
 import com.bmservice.core.mapper.system.VmtaMapper;
 import com.bmservice.core.models.admin.*;
+import com.bmservice.core.remote.SSH;
+import com.bmservice.core.utils.Strings;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 import org.springframework.stereotype.Component;
 
-import java.io.File;
+import java.io.*;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -26,6 +37,52 @@ public class DropsHelper {
     private final ServerMapper serverMapper;
 
     private final VmtaMapper vmtaMapper;
+
+    public static void saveDrop(final DropComponent dropComponent, final Server server) throws Exception {
+        /*final Drop drop = new Drop();
+        drop.id = 0;
+        drop.pids = dropComponent.pickupsFolder + File.separator + "drop_status_" + server.id;
+        drop.userId = dropComponent.mailerId;
+        drop.serverId = server.id;
+        drop.ispId = dropComponent.ispId;
+        drop.status = "in-progress";
+        drop.startTime = new Timestamp(System.currentTimeMillis());
+        drop.finishTime = null;
+        drop.totalEmails = dropComponent.emailsCount;
+        drop.sentProgress = 0;
+        drop.offerId = dropComponent.offerId;
+        drop.offerFromNameId = dropComponent.fromNameId;
+        drop.offerSubjectId = dropComponent.subjectId;
+        drop.recipientsEmails = String.join(",", (CharSequence[])dropComponent.testEmails);
+        drop.header = new String(Base64.encodeBase64(String.join("\n\n", (CharSequence[])dropComponent.headers).getBytes()));
+        drop.creativeId = dropComponent.creativeId;
+        String[] lists = new String[0];
+        for (final Map.Entry<Integer, String> en : dropComponent.lists.entrySet()) {
+            lists = (String[])ArrayUtils.add((Object[])lists, (Object)String.valueOf(en.getValue()));
+        }
+        drop.lists = String.join("|", (CharSequence[])lists);
+        drop.postData = new String(Base64.encodeBase64(dropComponent.content.getBytes()));
+        dropComponent.id = drop.insert();
+        if (dropComponent.id == 0) {
+            throw new Exception("Error While Saving Drop !");
+        }*/
+    }
+
+    public static void saveDropVmta(final DropComponent dropComponent, final Vmta vmta, final int totalSent) throws Exception {
+        /*final DropIp dropIp = new DropIp();
+        dropIp.id = 0;
+        dropIp.serverId = vmta.serverId;
+        dropIp.ispId = dropComponent.ispId;
+        dropIp.dropId = dropComponent.id;
+        dropIp.ipId = vmta.ipId;
+        dropIp.dropDate = new Timestamp(System.currentTimeMillis());
+        dropIp.totalSent = totalSent;
+        dropIp.delivered = 0;
+        dropIp.bounced = 0;
+        if (dropIp.insert() == 0) {
+            throw new Exception("Error While Saving Drop Ip !");
+        }*/
+    }
 
     public DropComponent parseDropFile(String content) {
         DropComponent drop = null;
@@ -171,7 +228,7 @@ public class DropsHelper {
                     var redirectFileName = "r.php";
                     var optoutFileName = "optout.php";
 
-                    final String dataSourcePath = new File(System.getProperty("base.path")).getAbsolutePath() + "/applications/bluemail/configs/application.ini";
+                   /* final String dataSourcePath = new File(System.getProperty("base.path")).getAbsolutePath() + "/applications/bluemail/configs/application.ini";
                     if (new File(new File(System.getProperty("base.path")).getAbsolutePath() + "/applications/bluemail/configs/application.ini").exists()) {
                         final HashMap<String, String> map = Mapper.readProperties(dataSourcePath);
                         if (!map.isEmpty()) {
@@ -182,9 +239,9 @@ public class DropsHelper {
                                 optoutFileName = String.valueOf(map.get("optout_file"));
                             }
                         }
-                    }
+                    }*/
 
-                    drop = DropComponent.builder().id(dropId).isNewDrop(dropId == 0).isSend(isSend).content(content).mailerId(mailerId).randomTags(getAllRandomTags(drop.getContent()))
+                    drop = DropComponent.builder().id(dropId).isNewDrop(dropId == 0).isSend(isSend).content(content).mailerId(mailerId).randomTags(getAllRandomTags(content))
                             .serversIds(serversIds).servers(servers).vmtas(vmtas).vmtasRotation(vmtasRotation).vmtasIds(vmtasIds).vmtasEmailsProcces(vmtasEmailsProcess)
                             .batch(batch).delay(delay).numberOfEmails(numberOfEmails).emailsPeriodValue(emailsPeriodValue).emailsPeriodType(emailsPeriodType)
                             .sponsorId(sponsorId).sponsor(Sponsor.builder().id(sponsorId).build()).offerId(offerId).offer(Offer.builder().id(offerId).build()).creativeId(creativeId).fromNameId(fromNameId).fromName(fromName).subjectId(subjectId).subject(subject)
@@ -213,6 +270,79 @@ public class DropsHelper {
             }
         }
         return tags;
+    }
+
+    public static void uploadImage(final DropComponent drop, final SSH ssh) {
+        if (drop != null && !"".equalsIgnoreCase(drop.getBody()) && ssh != null && ssh.isConnected()) {
+            try {
+                final Document doc = Jsoup.parse(drop.getBody());
+                final Elements images = doc.select("img");
+                ByteArrayOutputStream out = null;
+                for (final Element image : images) {
+                    final String src = image.attr("src");
+                    final URL url = new URL(src);
+                    final URLConnection uc = url.openConnection();
+                    uc.addRequestProperty("User-Agent", "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.0)");
+                    uc.connect();
+                    final InputStream inStream = uc.getInputStream();
+                    if (inStream != null && inStream.available() > 0) {
+                        try (final InputStream in = new BufferedInputStream(inStream)) {
+                            out = new ByteArrayOutputStream();
+                            final byte[] buf = new byte[1024];
+                            int n = 0;
+                            while (-1 != (n = in.read(buf))) {
+                                out.write(buf, 0, n);
+                            }
+                            out.close();
+                        }
+                        if (out.size() <= 0) {
+                            continue;
+                        }
+                        final byte[] response = out.toByteArray();
+                        if (response == null || response.length <= 0 || !new File(System.getProperty("base.path") + "/tmp/").exists()) {
+                            continue;
+                        }
+                        final String extension = src.substring(src.lastIndexOf("."));
+                        final String imageName = Strings.getSaltString(20, true, true, true, false) + extension;
+                        try (final FileOutputStream fos = new FileOutputStream(System.getProperty("base.path") + "/tmp/" + imageName)) {
+                            fos.write(response);
+                        }
+                        if (!new File(System.getProperty("base.path") + "/tmp/" + imageName).exists()) {
+                            continue;
+                        }
+                        ssh.uploadFile(System.getProperty("base.path") + "/tmp/" + imageName, "/var/www/html/img/" + imageName);
+                        var newBody = StringUtils.replace(drop.getBody(), src, "http://[domain]/img/" + imageName);
+                        drop.setBody(newBody);
+                        new File(BmServiceCoreConstants.BASE_PATH + "/tmp/" + imageName).delete();
+                    }
+                }
+            }
+            catch (Exception ex) {}
+        }
+    }
+
+
+    public static void writeThreadStatusFile(final int serverId, final String folder) {
+        try {
+            FileUtils.writeStringToFile(new File(folder + File.separator + "drop_status_" + serverId), "0");
+        }
+        catch (Exception e) {
+            log.error(e.getMessage());
+        }
+    }
+
+    public static boolean hasToStopDrop(final int serverId, final String folder) {
+        boolean stop = false;
+        try {
+            stop = String.valueOf(FileUtils.readFileToString(new File(folder + File.separator + "drop_status_" + serverId))).trim().contains("1");
+            if (stop) {
+                System.out.println("Stoped !");
+            }
+        }
+        catch (Exception e) {
+            log.error(e.getMessage());
+        }
+        return stop;
     }
 
 }

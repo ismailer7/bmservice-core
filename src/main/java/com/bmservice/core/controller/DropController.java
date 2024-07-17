@@ -42,7 +42,7 @@ public class DropController {
         drop = dropsHelper.parseDropFile(dropFileContent);
         dropService.send(drop);
 
-        if(dropFile.exists()) dropFile.delete();
+        //if(dropFile.exists()) dropFile.delete();
     }
 
     @ExceptionHandler(BmServiceCoreException.class)

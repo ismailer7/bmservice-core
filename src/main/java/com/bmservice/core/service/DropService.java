@@ -1,15 +1,17 @@
 package com.bmservice.core.service;
 
 import com.bmservice.core.component.DropComponent;
+import com.bmservice.core.component.RotatorComponent;
 import com.bmservice.core.exception.BmServiceCoreException;
+import com.bmservice.core.mapper.list.ListMapper;
 import com.bmservice.core.models.admin.Server;
 import com.bmservice.core.models.admin.Vmta;
 import com.bmservice.core.worker.ServerWorker;
-import org.apache.commons.lang3.SerializationUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -18,8 +20,18 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class DropService {
 
+    static volatile RotatorComponent PLACEHOLDERS_ROTATOR;
+    static volatile RotatorComponent HEADERS_ROTATOR;
+
+    @Autowired
+    private ListMapper listMapper;
+
     public void send(DropComponent dropComponent) {
         if(!dropComponent.getServers().isEmpty() && !dropComponent.getVmtas().isEmpty()) {
+
+            PLACEHOLDERS_ROTATOR = dropComponent.isHasPlaceholders() ? new RotatorComponent(Arrays.asList(dropComponent.getPlaceholders()), dropComponent.getPlaceholdersRotation()) : null;
+            HEADERS_ROTATOR = new RotatorComponent(Arrays.asList(dropComponent.getHeaders()), dropComponent.getHeadersRotation());
+
             var serversSize = dropComponent.getServers().size();
             var vmtasSize = dropComponent.getVmtas().size();
             var dataCount = dropComponent.getDataCount();
@@ -44,7 +56,7 @@ public class DropService {
                     if(server != null && "vmtas".equalsIgnoreCase(dropComponent.getEmailsSplitType())) {
                         serverLimit = 0;
                     }
-                    serverVmtas = new ArrayList<Vmta>();
+                    serverVmtas = new ArrayList<>();
                     if(!dropComponent.getVmtas().isEmpty()) {
                         for(Vmta vmta: dropComponent.getVmtas()) {
                             if(vmta.getServerId() == server.getId()) {
@@ -62,7 +74,7 @@ public class DropService {
 
                     // call the server worker for each server
 
-                    ServerWorker worker = new ServerWorker( (DropComponent) SerializationUtils.clone((Serializable) dropComponent), server, serverVmtas, offset, serverLimit);
+                    ServerWorker worker = new ServerWorker(dropComponent, server, serverVmtas, offset, serverLimit, listMapper);
                     serversExecutor.submit(worker);
                     offset += serverLimit;
                 }
@@ -78,6 +90,24 @@ public class DropService {
 
     }
 
+    public static synchronized String getCurrentPlaceHolder() {
+        return (String)((PLACEHOLDERS_ROTATOR != null) ? PLACEHOLDERS_ROTATOR.getCurrentValue() : "");
+    }
 
+    public static synchronized void rotatePlaceHolders() {
+        if (PLACEHOLDERS_ROTATOR != null) {
+            PLACEHOLDERS_ROTATOR.rotate();
+        }
+    }
+
+    public static synchronized String getCurrentHeader() {
+        return (String)((HEADERS_ROTATOR != null) ? HEADERS_ROTATOR.getCurrentValue() : "");
+    }
+
+    public static synchronized void rotateHeaders() {
+        if (HEADERS_ROTATOR != null) {
+            HEADERS_ROTATOR.rotate();
+        }
+    }
 
 }

@@ -16,11 +16,11 @@ public class Vmta {
     private String type;
     private String ipValue;
     private String domain;
-    private String username;
-    private String password;
-    private String smtphost;
     private int createdBy;
     private int lastUpdatedBy;
     private Date createdAt;
     private Date lastUpdatedAt;
+    private String username;
+    private String password;
+    private String smtphost;
 }
