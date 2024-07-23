@@ -50,7 +50,7 @@ public class DropService {
                     vmtasLimit = (int) Math.ceil((double) dataCount / vmtasSize) ;
                     limitRest = dataCount - vmtasLimit * vmtasSize;
                 }
-
+            }
                 for (int i = 0; i < serversSize; i++) {
                     final Server server = dropComponent.getServers().get(i);
                     if(server != null && "vmtas".equalsIgnoreCase(dropComponent.getEmailsSplitType())) {
@@ -78,8 +78,6 @@ public class DropService {
                     serversExecutor.submit(worker);
                     offset += serverLimit;
                 }
-            }
-
             serversExecutor.shutdown();
             try {
                 serversExecutor.awaitTermination(10L, TimeUnit.DAYS);

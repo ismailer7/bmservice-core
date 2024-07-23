@@ -272,6 +272,49 @@ public class DropsHelper {
         return tags;
     }
 
+    public static String replaceRandomTags(String value, final String[] randomTags) {
+        if (value != null && !"".equals(value) && randomTags != null && randomTags.length > 0) {
+            for (final String randomTag : randomTags) {
+                if (value.contains(randomTag)) {
+                    value = StringUtils.replace(value, "[" + randomTag + "]", replaceRandomTag(randomTag));
+                }
+            }
+        }
+        return value;
+    }
+
+    public static String replaceRandomTag(final String tag) {
+        final int size = TypesParser.safeParseInt(tag.replaceAll("[^0-9]", ""));
+        final String replaceAll;
+        final String type = replaceAll = tag.replaceAll("[0-9]", "");
+        switch (replaceAll) {
+            case "a": {
+                return Strings.getSaltString(size, true, true, false, false);
+            }
+            case "al": {
+                return Strings.getSaltString(size, true, true, false, false).toLowerCase();
+            }
+            case "au": {
+                return Strings.getSaltString(size, true, true, false, false).toUpperCase();
+            }
+            case "an": {
+                return Strings.getSaltString(size, true, true, true, false);
+            }
+            case "anl": {
+                return Strings.getSaltString(size, true, true, true, false).toLowerCase();
+            }
+            case "anu": {
+                return Strings.getSaltString(size, true, true, true, false).toUpperCase();
+            }
+            case "n": {
+                return Strings.getSaltString(size, false, false, true, false);
+            }
+            default: {
+                return "";
+            }
+        }
+    }
+
     public static void uploadImage(final DropComponent drop, final SSH ssh) {
         if (drop != null && !"".equalsIgnoreCase(drop.getBody()) && ssh != null && ssh.isConnected()) {
             try {

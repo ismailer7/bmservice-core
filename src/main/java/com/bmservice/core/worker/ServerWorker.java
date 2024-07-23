@@ -23,7 +23,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
-public class ServerWorker extends Thread {
+public class ServerWorker implements Runnable {
 
     DropComponent drop;
     Server server;
@@ -80,7 +80,7 @@ public class ServerWorker extends Thread {
     }
 
     @Override
-    public void start() {
+    public void run() {
         log.info("Server Worker Started for server '{}' Started !", server.getId());
 
         SSH ssh = null;
@@ -155,7 +155,8 @@ public class ServerWorker extends Thread {
                     }
 
                     var calcBatch = (this.drop.getBatch() > this.drop.getEmailsCount()) ? this.drop.getEmailsCount() : this.drop.getBatch();
-                    this.drop.setBatch( (calcBatch == 0) ? 1 : this.drop.getBatch());
+                    this.drop.setBatch(calcBatch);
+                    this.drop.setBatch(this.drop.getBatch() == 0 ? 1 : this.drop.getBatch());
                     final ExecutorService pickupsExecutor = Executors.newFixedThreadPool(100);
                     if (this.drop.getBatch() == 0) {
                         throw new Exception("Batch should be greather than 0 !");
@@ -172,7 +173,7 @@ public class ServerWorker extends Thread {
                         if (this.drop != null && this.drop.isSend() && this.drop.getId() > 0) {
                             final String status = this.DropStatus();
                             if (DropsHelper.hasToStopDrop(this.server.getId(), this.drop.getPickupsFolder()) || Objects.equals(status, "interrupted")) {
-                                this.interrupt();
+                                //this.interrupt();
                                 pickupsExecutor.shutdownNow();
                                 this.interruptDrop();
                                 isStopped = true;
@@ -180,20 +181,20 @@ public class ServerWorker extends Thread {
                                 break;
                             }
                         }
-                        if (isStopped || this.isInterrupted() || this.drop.isStoped()) {
+                        if (isStopped || this.drop.isStoped()) {
                             pickupsExecutor.shutdownNow();
-                            this.interrupt();
+                            // this.interrupt();
                             this.pickupWorkers.forEach(previousWorker -> {
-                                if (previousWorker.isAlive()) {
+                                /*if (previousWorker.isAlive()) {
                                     previousWorker.interrupt();
-                                }
+                                }*/
                                 return;
                             });
                             break;
                         }
                         periodVmta = ("emails-per-period".equalsIgnoreCase(this.drop.getVmtasEmailsProcces()) ? this.drop.getCurrentVmta() : null);
                         worker = new PickupWorker(i, this.drop, this.server, result.subList(start, finish), periodVmta);
-                        worker.setUncaughtExceptionHandler(new ThreadException());
+                        // worker.setUncaughtExceptionHandler(new ThreadException());
                         pickupsExecutor.submit(worker);
                         this.pickupWorkers.add(worker);
                         start += this.drop.getBatch();
@@ -236,17 +237,17 @@ public class ServerWorker extends Thread {
                                 }
                                 if (isStopped || this.drop.isStoped()) {
                                     senderExecutor.shutdownNow();
-                                    this.interrupt();
+                                    // this.interrupt();
                                     this.sendersWorkers.forEach(previousWorker -> {
-                                        if (previousWorker.isAlive()) {
+                                        /*if (previousWorker.isAlive()) {
                                             previousWorker.interrupt();
-                                        }
+                                        }*/
                                         return;
                                     });
                                     break;
                                 }
                                 senderWorker = new SenderWorker(this.drop.getId(), ssh, pickupsFile2);
-                                senderWorker.setUncaughtExceptionHandler(new ThreadException());
+                                //senderWorker.setUncaughtExceptionHandler(new ThreadException());
                                 senderExecutor.submit(senderWorker);
                                 this.sendersWorkers.add(senderWorker);
                                 if (this.drop.getDelay() > 0L) {

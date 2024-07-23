@@ -2,16 +2,14 @@ package com.bmservice.core.controller;
 
 import com.bmservice.core.BmServiceCoreConstants;
 import com.bmservice.core.component.DropComponent;
+import com.bmservice.core.dto.DropFileParam;
 import com.bmservice.core.exception.BmServiceCoreException;
 import com.bmservice.core.service.DropService;
 import com.bmservice.core.helper.DropsHelper;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -29,8 +27,8 @@ public class DropController {
     private final DropsHelper dropsHelper;
 
     @PostMapping("/drops")
-    public void drop() {
-        File dropFile = Paths.get("src/test/resources/drop1.json").toFile();
+    public void drop(@RequestBody String path) throws BmServiceCoreException {
+        File dropFile = Paths.get(path).toFile();
         DropComponent drop = null;
         String dropFileContent = null;
         if(!dropFile.exists()) {

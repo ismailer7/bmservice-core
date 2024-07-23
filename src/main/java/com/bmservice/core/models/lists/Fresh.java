@@ -1,10 +1,8 @@
 package com.bmservice.core.models.lists;
 
-import lombok.Builder;
 import lombok.Data;
 
 @Data
-@Builder
 public class Fresh {
 
     private int id;
@@ -12,5 +10,10 @@ public class Fresh {
     private String fname;
     private String lname;
     private String offersExcluded;
+    private int listId;
+
+    private String schema;
+    private String table;
+
 
 }
