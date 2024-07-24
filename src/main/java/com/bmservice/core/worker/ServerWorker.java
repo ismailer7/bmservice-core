@@ -37,6 +37,7 @@ public class ServerWorker implements Runnable {
 
     ListMapper listMapper;
 
+
     public ServerWorker(DropComponent drop, Server server, List<Vmta> vmtas, int offset, int limit, ListMapper listMapper) {
         this.drop = drop;
         this.server = server;

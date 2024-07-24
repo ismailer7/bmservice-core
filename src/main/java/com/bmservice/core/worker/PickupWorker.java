@@ -310,7 +310,7 @@ public class PickupWorker implements Runnable {
             email.setSchema("");
             email.setTable("");
         }
-        //email.map(row);
+        email.setEmail(String.valueOf(row.get("email")));
         email.setFname(((email.getFname() == null || "".equals(email.getFname()) || "null".equalsIgnoreCase(email.getFname())) ? email.getEmail().split("\\@")[0] : email.getFname()));
         email.setLname(((email.getLname() == null || "".equals(email.getLname()) || "null".equalsIgnoreCase(email.getLname())) ? email.getFname() : email.getLname()));
         email.setListId(TypesParser.safeParseInt(String.valueOf(row.get("list_id"))));
